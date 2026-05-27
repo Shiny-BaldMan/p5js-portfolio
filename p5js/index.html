@@ -1,0 +1,347 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>p5.js 작품 포트폴리오</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Serif+KR:wght@300;400;700&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg: #0a0a0f;
+      --surface: #10101a;
+      --border: rgba(255,255,255,0.07);
+      --accent1: #7f6aff;
+      --accent2: #ff6a9b;
+      --accent3: #6affd4;
+      --text: #e8e4f0;
+      --muted: rgba(232,228,240,0.4);
+    }
+
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'Noto Serif KR', serif;
+      min-height: 100vh;
+      overflow-x: hidden;
+    }
+
+    /* ── 배경 노이즈 텍스처 ── */
+    body::before {
+      content: '';
+      position: fixed;
+      inset: 0;
+      background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.04'/%3E%3C/svg%3E");
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    /* ── 상단 장식 라인 ── */
+    .top-line {
+      width: 100%;
+      height: 1px;
+      background: linear-gradient(90deg, transparent, var(--accent1), var(--accent2), var(--accent3), transparent);
+      animation: shimmer 4s ease infinite;
+    }
+
+    @keyframes shimmer {
+      0%, 100% { opacity: 0.6; }
+      50% { opacity: 1; }
+    }
+
+    /* ── 헤더 ── */
+    header {
+      position: relative;
+      z-index: 1;
+      padding: 56px 40px 40px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .label {
+      font-family: 'Space Mono', monospace;
+      font-size: 0.65rem;
+      letter-spacing: 0.3em;
+      color: var(--accent1);
+      text-transform: uppercase;
+    }
+
+    h1 {
+      font-size: clamp(1.8rem, 4vw, 3rem);
+      font-weight: 700;
+      letter-spacing: -0.02em;
+      background: linear-gradient(135deg, #fff 30%, var(--accent1));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      text-align: center;
+    }
+
+    .subtitle {
+      font-size: 0.85rem;
+      color: var(--muted);
+      font-weight: 300;
+      letter-spacing: 0.05em;
+    }
+
+    /* ── 분리선 ── */
+    .divider {
+      width: 60px;
+      height: 1px;
+      background: linear-gradient(90deg, var(--accent1), var(--accent2));
+      margin: 4px auto;
+    }
+
+    /* ── 그리드 ── */
+    .grid-wrapper {
+      position: relative;
+      z-index: 1;
+      padding: 0 32px 64px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 0;
+    }
+
+    /* 레이블 행 */
+    .col-labels {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      width: 100%;
+      max-width: 860px;
+      margin-bottom: 10px;
+    }
+
+    .col-label {
+      font-family: 'Space Mono', monospace;
+      font-size: 0.6rem;
+      letter-spacing: 0.25em;
+      color: var(--muted);
+      text-align: center;
+      text-transform: uppercase;
+    }
+
+    #projects {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      width: 100%;
+      max-width: 860px;
+      gap: 16px;
+    }
+
+    /* ── 카드 ── */
+    .cell {
+      position: relative;
+      aspect-ratio: 16 / 9;
+      overflow: hidden;
+      border-radius: 6px;
+      border: 1px solid var(--border);
+      background: var(--surface);
+      cursor: pointer;
+      transition: border-color 0.3s, transform 0.3s;
+    }
+
+    .cell:hover {
+      border-color: rgba(127,106,255,0.4);
+      transform: translateY(-3px);
+    }
+
+    /* 번호 뱃지 */
+    .cell-badge {
+      position: absolute;
+      top: 10px;
+      left: 10px;
+      z-index: 10;
+      font-family: 'Space Mono', monospace;
+      font-size: 0.6rem;
+      letter-spacing: 0.1em;
+      color: rgba(255,255,255,0.8);
+      background: rgba(0,0,0,0.5);
+      backdrop-filter: blur(6px);
+      border: 1px solid var(--border);
+      padding: 3px 8px;
+      border-radius: 20px;
+    }
+
+    /* 과제 제목 오버레이 */
+    .cell-overlay {
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      padding: 20px 12px 10px;
+      background: linear-gradient(transparent, rgba(0,0,0,0.75));
+      opacity: 0;
+      transition: opacity 0.3s;
+      z-index: 10;
+      display: flex;
+      align-items: flex-end;
+      justify-content: space-between;
+    }
+
+    .cell:hover .cell-overlay { opacity: 1; }
+
+    .cell-title {
+      font-size: 0.78rem;
+      font-weight: 400;
+      letter-spacing: 0.05em;
+    }
+
+    .cell-tag {
+      font-family: 'Space Mono', monospace;
+      font-size: 0.55rem;
+      letter-spacing: 0.15em;
+      padding: 2px 6px;
+      border-radius: 3px;
+      text-transform: uppercase;
+    }
+
+    .tag-static { color: var(--accent3); border: 1px solid var(--accent3); }
+    .tag-dynamic { color: var(--accent2); border: 1px solid var(--accent2); }
+
+    /* iframe */
+    .cell iframe {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 600px;
+      height: 400px;
+      border: none;
+      transform-origin: top left;
+      transform: scale(var(--iframe-scale, 0.5));
+      pointer-events: none;
+    }
+
+    /* 행 레이블 (좌측) */
+    .row-labels {
+      position: absolute;
+      left: -28px;
+      top: 0;
+      height: 100%;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .row-label {
+      flex: 1;
+      display: flex;
+      align-items: center;
+      font-family: 'Space Mono', monospace;
+      font-size: 0.55rem;
+      color: var(--muted);
+      letter-spacing: 0.15em;
+      writing-mode: vertical-rl;
+      text-orientation: mixed;
+      text-transform: uppercase;
+    }
+
+    /* ── 하단 푸터 ── */
+    footer {
+      position: relative;
+      z-index: 1;
+      text-align: center;
+      padding: 0 0 40px;
+      font-family: 'Space Mono', monospace;
+      font-size: 0.6rem;
+      color: var(--muted);
+      letter-spacing: 0.2em;
+    }
+
+    /* ── iframe scale 반응형 ── */
+    @media (max-width: 900px) {
+      #projects { max-width: 600px; }
+      .col-labels { max-width: 600px; }
+    }
+  </style>
+</head>
+<body>
+
+  <div class="top-line"></div>
+
+  <header>
+    <span class="label">p5.js · Creative Coding</span>
+    <h1>나의 작품 포트폴리오</h1>
+    <div class="divider"></div>
+    <p class="subtitle">정적 드로잉부터 인터랙티브 애니메이션까지</p>
+  </header>
+
+  <div class="grid-wrapper">
+
+    <div class="col-labels">
+      <div class="col-label">과제 1 &amp; 2</div>
+      <div class="col-label">과제 4 &amp; 3</div>
+    </div>
+
+    <main id="projects">
+
+      <!-- 과제 1: 정적 야경 -->
+      <div class="cell">
+        <span class="cell-badge">과제 01</span>
+        <iframe src="sample1/index.html" title="과제 1"></iframe>
+        <div class="cell-overlay">
+          <span class="cell-title">도시 야경</span>
+          <span class="cell-tag tag-static">Static</span>
+        </div>
+      </div>
+
+      <!-- 과제 4: 동적 야경 (애니메이션) -->
+      <div class="cell">
+        <span class="cell-badge">과제 04</span>
+        <iframe src="sample4/index.html" title="과제 4"></iframe>
+        <div class="cell-overlay">
+          <span class="cell-title">달이 뜨는 도시</span>
+          <span class="cell-tag tag-dynamic">Dynamic</span>
+        </div>
+      </div>
+
+      <!-- 과제 2: 정적 캐릭터 -->
+      <div class="cell">
+        <span class="cell-badge">과제 02</span>
+        <iframe src="sample2/index.html" title="과제 2"></iframe>
+        <div class="cell-overlay">
+          <span class="cell-title">Dead Inside 캐릭터</span>
+          <span class="cell-tag tag-static">Static</span>
+        </div>
+      </div>
+
+      <!-- 과제 3: 인터랙티브 캐릭터 -->
+      <div class="cell">
+        <span class="cell-badge">과제 03</span>
+        <iframe src="sample3/index.html" title="과제 3"></iframe>
+        <div class="cell-overlay">
+          <span class="cell-title">인터랙티브 캐릭터</span>
+          <span class="cell-tag tag-dynamic">Interactive</span>
+        </div>
+      </div>
+
+    </main>
+  </div>
+
+  <footer>MADE WITH p5.js &nbsp;·&nbsp; CREATIVE CODING</footer>
+
+  <script>
+    // iframe scale을 카드 실제 너비에 맞게 동적으로 계산
+    function scaleIframes() {
+      const cells = document.querySelectorAll('.cell');
+      cells.forEach(cell => {
+        const w = cell.clientWidth;
+        const scale = w / 600;
+        const iframe = cell.querySelector('iframe');
+        if (iframe) {
+          iframe.style.transform = `scale(${scale})`;
+          iframe.style.height = (400 * scale / scale) + 'px'; // keep 400 natural height
+          // fix: cell aspect-ratio already set, iframe height stays 400
+          iframe.style.height = '400px';
+        }
+      });
+    }
+    scaleIframes();
+    window.addEventListener('resize', scaleIframes);
+  </script>
+
+</body>
+</html>
